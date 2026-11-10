@@ -1,76 +1,76 @@
 #!/usr/bin/env python3
-"""Simple helper for collecting serial output from the ESP8266 scanner.
-
-Usage:
-    python3 scripts/collect_signal_data.py --port /dev/ttyUSB0 --output data/scan.csv
-"""
+"""Collect passive ESP8266 Signal Lab serial records into a local CSV file."""
 
 import argparse
 import csv
-import serial
+import datetime as dt
+import re
+import sys
 import time
 from pathlib import Path
 
+import serial
 
-def parse_line(line: str):
-    """Convert lines like:
-    SSID=MyNetwork | RSSI=-62 dBm | CH=6 | BSSID=AA:BB:CC:DD:EE:FF | SEC=Encrypted
-    into a dict for CSV output.
-    """
-    parts = {}
-    for segment in line.split("|"):
-        key_value = segment.strip().split("=", 1)
-        if len(key_value) == 2:
-            key, value = key_value
-            parts[key.strip()] = value.strip()
-    return parts
+FIELDS = [
+    "timestamp", "elapsed_ms", "ssid", "bssid", "rssi_dbm", "channel",
+    "security", "latitude", "longitude", "altitude_m",
+]
+RECORD_RE = re.compile(r'([A-Z_]+)=("(?:[^"]|"")*"|[^|]*)')
 
 
-def collect(port: str, output_path: str, baud: int = 115200, timeout: float = 2.0):
+def parse_record(line):
+    if not line.startswith("SCAN | "):
+        return None
+    values = {}
+    for key, raw in RECORD_RE.findall(line):
+        value = raw.strip()
+        if value.startswith('"') and value.endswith('"'):
+            value = value[1:-1].replace('""', '"')
+        values[key] = value
+    return {
+        "timestamp": dt.datetime.now().astimezone().isoformat(timespec="seconds"),
+        "elapsed_ms": values.get("ELAPSED_MS", ""),
+        "ssid": values.get("SSID", ""),
+        "bssid": values.get("BSSID", ""),
+        "rssi_dbm": values.get("RSSI_DBM", ""),
+        "channel": values.get("CHANNEL", ""),
+        "security": values.get("SECURITY", ""),
+        "latitude": values.get("LATITUDE", ""),
+        "longitude": values.get("LONGITUDE", ""),
+        "altitude_m": values.get("ALTITUDE_M", ""),
+    }
+
+
+def collect(port, output_path, baud):
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)
-
-    with serial.Serial(port, baud, timeout=timeout) as ser:
-        time.sleep(2)
-        with output.open("w", newline="") as csv_file:
-            writer = csv.DictWriter(
-                csv_file,
-                fieldnames=["SSID", "RSSI", "CH", "BSSID", "SEC"],
-            )
+    needs_header = not output.exists() or output.stat().st_size == 0
+    with serial.Serial(port, baudrate=baud, timeout=1) as device, output.open("a", newline="", encoding="utf-8") as file:
+        writer = csv.DictWriter(file, fieldnames=FIELDS)
+        if needs_header:
             writer.writeheader()
-
-            while True:
-                line = ser.readline()
-                if not line:
-                    continue
-
-                decoded = line.decode("utf-8", errors="ignore").strip()
-                if not decoded or "Scanning nearby WiFi networks" in decoded:
-                    continue
-                if decoded.startswith("Found") or decoded.startswith("---"):
-                    continue
-                if "SSID=" not in decoded:
-                    continue
-
-                row = parse_line(decoded)
-                if row:
-                    writer.writerow(row)
-                    print(decoded)
+        print(f"Collecting from {port} to {output}; press Ctrl+C to stop.")
+        while True:
+            line = device.readline().decode("utf-8", errors="replace").strip()
+            row = parse_record(line)
+            if row:
+                writer.writerow(row)
+                file.flush()
+                print(f"{row['timestamp']} {row['bssid']} {row['rssi_dbm']} dBm")
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Collect serial WiFi scan data from ESP8266 Signal Lab.")
-    parser.add_argument("--port", required=True, help="Serial port, e.g. /dev/ttyUSB0 or COM3")
-    parser.add_argument("--output", default="data/scan.csv", help="Output CSV path")
-    parser.add_argument("--baud", type=int, default=115200, help="Serial baud rate")
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--port", required=True, help="Serial port (for example COM3 or /dev/ttyUSB0)")
+    parser.add_argument("--output", default="data/scan.csv", help="CSV output path")
+    parser.add_argument("--baud", type=int, default=115200)
     args = parser.parse_args()
-
     try:
         collect(args.port, args.output, args.baud)
     except KeyboardInterrupt:
-        print("\nCollection stopped by user.")
-    except Exception as exc:
-        raise SystemExit(f"Error: {exc}")
+        print("\nStopped.")
+    except serial.SerialException as exc:
+        sys.exit(f"Serial error: {exc}")
 
 
 if __name__ == "__main__":

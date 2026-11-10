@@ -1,8 +1,3 @@
 # Notebook workspace
 
-Place Jupyter notebooks for WiFi telemetry analysis here.
-
-Suggested notebooks:
-- `01_scan_overview.ipynb`
-- `02_signal_heatmap.ipynb`
-- `03_anomaly_review.ipynb`
+`01_scan_analysis.ipynb` loads the CSV produced by `scripts/collect_signal_data.py`, summarizes channels and signal strength, and reviews repeated scan-to-scan presence changes. It may plot GPS points if valid location columns exist; protect those plots and source data.

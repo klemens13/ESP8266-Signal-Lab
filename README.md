@@ -1,103 +1,114 @@
 # ESP8266 Signal Lab
 
-ESP8266 Signal Lab is a learning-focused toolkit for authorized WiFi monitoring, consent-based wardriving, signal detection, and notebook-driven wireless analysis. It is designed for ethical security research, network visibility, and educational experimentation on networks you own or are explicitly authorized to assess.
+An ethical, passive WiFi monitoring and analysis project that brings together the learning and reconnaissance themes of **Nugget-Invader**, **esp8266_deauther**, **ESP8266-Wardriving**, and **HaxxDetector**—without carrying over features that disrupt networks or impersonate access points.
 
-## Mission
+Use it only in a lab or location where you have permission to monitor. WiFi identifiers and GPS coordinates can be sensitive; keep captures local, minimize retention, and get consent before collecting location-linked data.
 
-This project helps researchers and hobbyists:
-- passively scan nearby WiFi networks
-- capture signal and channel metadata
-- detect suspicious or unusual wireless activity patterns
-- export data for notebook-based visualization and analysis
-- learn how WiFi telemetry can be monitored and interpreted responsibly
+## What this project includes
 
-## Ethical use
+- **Passive WiFi survey:** ESP8266 scans visible access points and records SSID, BSSID, RSSI, channel, and security mode.
+- **Optional consent-based GPS logging:** reads NMEA from a GPS module and attaches the most recent valid fix to scan records.
+- **Local CSV collection:** Python serial collector saves measurements on your computer.
+- **Signal and change analysis:** Jupyter notebook visualizes signal levels and flags unusual scan-to-scan changes for human review.
+- **Ethical detection workflow:** supports review of suspicious wireless conditions; scan disappearance is only an indicator, not proof of deauthentication or an attack.
+- **ESP8266 Nugget learning context:** firmware is a simple serial-driven scanner suitable for compatible ESP8266 boards.
 
-This toolkit must be used only in environments where you have explicit authorization to scan, monitor, or test. Do not use it against private, public, or third-party networks without permission.
+## What it deliberately excludes
 
-See `docs/ETHICS.md` for our usage policy and safety guidance.
-
-## Features
-
-- ESP8266-based WiFi scanning and telemetry collection
-- Passive discovery of access points and nearby networks
-- Signal strength, channel, and local environment sampling
-- Export-ready scan data for CSV/JSON processing
-- A simple analysis flow for Jupyter notebooks
-- Ethical-first project structure for learning and research
+This is a defensive, passive project. It does **not** transmit deauthentication/disassociation frames, jam, spoof access points, create deceptive networks, or automate attacks. It also does not claim that ordinary network scan results can identify deauthentication frames. Use purpose-built, authorized lab equipment and procedures if your assessment requires protocol-level validation.
 
 ## Repository layout
 
 ```text
-ESP8266-Signal-Lab/
-├── README.md
-├── .gitignore
+.
 ├── docs/
-│   └── ETHICS.md
+│   ├── ETHICS.md
+│   └── FEATURES.md
 ├── firmware/
 │   ├── platformio.ini
-│   └── src/
-│       └── main.cpp
-├── scripts/
-│   └── collect_signal_data.py
+│   └── src/main.cpp
 ├── notebooks/
-│   └── README.md
-└── LICENSE
+│   ├── README.md
+│   └── 01_scan_analysis.ipynb
+├── scripts/collect_signal_data.py
+├── requirements.txt
+└── README.md
 ```
 
-## Quick start
+## Hardware
 
-### 1) Firmware
+Required:
+- ESP8266 board (NodeMCU / D1 mini class)
+- USB cable
 
-Install PlatformIO and build the firmware:
+Optional GPS:
+- NMEA-0183 GPS module
+- Connect GPS TX to ESP8266 D6 (GPIO12), GPS ground to ESP8266 ground. GPS RX is not needed for receive-only logging.
+- Ensure the module's logic level is safe for the ESP8266; its GPIOs are not 5 V tolerant.
+
+The GPS receiver is read on a software serial input so USB serial remains available for logs. Configure pins in `firmware/src/main.cpp` if your board wiring differs. GPS geotagging is disabled when there is no valid fix.
+
+## Build and run
+
+### Firmware
+
+Install PlatformIO, then:
 
 ```bash
 cd firmware
 pio run
-```
-
-Upload to an ESP8266 board:
-
-```bash
 pio run --target upload
+pio device monitor --baud 115200
 ```
 
-### 2) Run scanning
+The monitor prints `SCAN` records in a pipe-delimited key/value format. Scanning is passive and periodically reports results. It does not intentionally connect to discovered networks.
 
-The firmware scans nearby WiFi networks and prints:
-- SSID
-- RSSI
-- channel
-- BSSID
-- security mode
+### Collect serial data
 
-### 3) Export and analyze data
-
-Use the helper script to collect serial output into a CSV or JSON file:
+Install Python dependencies from the repository root:
 
 ```bash
-python3 scripts/collect_signal_data.py --port /dev/ttyUSB0 --output data/scan.csv
+python -m pip install -r requirements.txt
 ```
 
-Then open the notebook templates in `notebooks/` for analysis and visualization.
+Find your serial port, then run:
 
-## Example hardware
+```bash
+python scripts/collect_signal_data.py --port /dev/ttyUSB0 --output data/scan.csv
+```
 
-- ESP8266 NodeMCU or similar compatible board
-- USB cable for programming
-- Optional external power supply for portable field use
+On Windows, use a port such as `COM3`. Stop collection with `Ctrl+C`. The collector adds a local collection timestamp; GPS columns are populated only when the firmware reports a valid fix.
 
-## Safety
+### Analyze
 
-- Never operate this project on unauthorized networks
-- Use only on devices you own or clearly manage
-- Obtain approval before testing in any environment
-- Prefer passive monitoring over active disruption
+Launch Jupyter from the repository root:
 
-## Project status
+```bash
+jupyter lab
+```
 
-This repository is a starter project focused on responsible WiFi telemetry and analysis. It is intended as a research and learning toolkit rather than a general-purpose attack platform.
+Open `notebooks/01_scan_analysis.ipynb` and set the input path to your capture. The notebook summarizes channels and signal strengths and highlights notable changes across scans. Treat every flagged pattern as a lead to investigate, not an attack attribution.
+
+## Data format
+
+The collected CSV has columns:
+
+`timestamp,elapsed_ms,ssid,bssid,rssi_dbm,channel,security,latitude,longitude,altitude_m`
+
+Keep captures out of version control. The supplied `.gitignore` excludes local data exports.
+
+## Responsible use
+
+- Obtain explicit permission before scanning or collecting data in any location.
+- Do not use the project to interfere with other people's connectivity.
+- Avoid publishing SSIDs, BSSIDs, or precise coordinates; redact or aggregate before sharing.
+- Follow applicable laws, organizational policies, and site rules.
+- See [docs/ETHICS.md](docs/ETHICS.md) and [docs/FEATURES.md](docs/FEATURES.md).
+
+## Credits and scope
+
+This project is inspired by the themes and learning goals of the four repositories listed above. It is an independent, safety-focused starter implementation, not a wholesale copy or merge of their source code. Attribution and licensing must be reviewed before incorporating code from any upstream project.
 
 ## License
 
-This project is licensed under the MIT License.
+MIT; see [LICENSE](LICENSE).

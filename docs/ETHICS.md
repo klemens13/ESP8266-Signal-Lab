@@ -1,35 +1,26 @@
-# Ethical Use Policy
+# Ethical Use and Privacy
 
-ESP8266 Signal Lab is designed for responsible, authorized WiFi research and learning. By using this project, you agree to use it only in environments where you have consent, authority, or a clear right to assess the network.
+ESP8266 Signal Lab is intended for education and authorized defensive monitoring. You are responsible for obtaining permission before scanning, logging, or analyzing wireless networks and locations.
 
-## Allowed use
+## Allowed context
 
-- personal lab environments
-- networks you own
-- networks you administer
-- educational environments with explicit permission
-- consent-based wireless surveying in authorized locations
+- A personal lab or network you own
+- A network you administer, with authorization
+- A class, research, or assessment environment with written scope and consent
+- Location surveys where the property owner and relevant participants have approved collection
 
-## Prohibited use
+## Not supported
 
-- unauthorized scanning of public or private networks
-- active disruption, jamming, or denial-of-service activity
-- deauthentication or attack automation against third parties
-- any use that violates laws, policies, or local regulations
+This project intentionally excludes deauthentication/disassociation transmission, jamming, access-point impersonation, credential collection, and automated attacks. Do not modify or use it to disrupt networks or collect information without authorization.
 
-## Security-first principles
+## Privacy controls
 
-This project prioritizes passive observation and telemetry collection over active interference. It is intended to support:
-- wireless visibility
-- network awareness
-- signal monitoring
-- detection of suspicious patterns
-- analysis by researchers and learners
+Wireless identifiers can identify households, organizations, and people. GPS coordinates are particularly sensitive. Keep raw data local, collect only what is needed, set a retention period, restrict access, and redact or aggregate identifiers and locations before sharing. Do not commit raw captures to Git.
 
-## Reporting concerns
+## Interpretation
 
-If you discover a misuse of this project or a potentially harmful deployment, report it immediately to the relevant owner or maintainers and discontinue use.
+A disappearing access point or changing RSSI is an observation, not proof of malicious activity. Environmental and device conditions can produce the same pattern. Validate findings through authorized, independent means and avoid unsupported attribution.
 
-## Final note
+## Compliance
 
-Security tools can be dual-use. This repository is intentionally framed as an ethical research and learning project. Responsible use is expected at all times.
+Check applicable laws, institutional policies, and site rules before use. If you are unsure whether a scan or collection is permitted, do not proceed until you have explicit approval.
